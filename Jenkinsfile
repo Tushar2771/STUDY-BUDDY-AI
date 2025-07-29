@@ -42,19 +42,27 @@ pipeline {
         }
 
         stage('Commit Updated YAML') {
-            steps {
-                script {
-                    withCredentials([usernamePassword(credentialsId: 'github-token', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
-                        sh '''
-                        git config user.name "Tushar2771"
-                        git config user.email "tusharrane2301@gmail.com"
-                        git add manifests/deployment.yaml
-                        git commit -m "Update image tag to ${IMAGE_TAG} [skip ci]"
-                        git push https://${GIT_USER}:${GIT_PASS}@github.com/Tushar2771/STUDY-BUDDY-AI.git HEAD:main
-                        '''
-                    }
-                }
+    steps {
+        script {
+            withCredentials([usernamePassword(credentialsId: 'github-token', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
+                sh '''
+                git config user.name "Tushar2771"
+                git config user.email "tusharrane2301@gmail.com"
+
+                # Only commit & push if file changed
+                if ! git diff --quiet manifests/deployment.yaml; then
+                  echo "Changes detected in deployment.yaml, committing..."
+                  git add manifests/deployment.yaml
+                  git commit -m "Update image tag to ${IMAGE_TAG} [skip ci]"
+                  git push https://${GIT_USER}:${GIT_PASS}@github.com/Tushar2771/STUDY-BUDDY-AI.git HEAD:main
+                else
+                  echo "No changes in deployment.yaml, skipping commit."
+                fi
+                '''
             }
+        }
+    }
+}
         }
         stage('Install Kubectl & ArgoCD CLI Setup') {
             steps {
